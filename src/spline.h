@@ -112,6 +112,7 @@ public:
                     const std::vector<double>& y, bool cubic_spline=true);
     double operator() (double x) const;
     double deriv(int order, double x) const;
+    double control_polygon(int i, int kIdx) const;
 };
 
 
@@ -454,6 +455,44 @@ double spline::deriv(int order, double x) const
     return interpol;
 }
 
+
+/**
+ * Converts the 4 parameters of the parametric equation that the spline is parameterized with
+ * f(x) = a*(x-x_i)^3 + b*(x-x_i)^2 + c*(x-x_i) + y_i 
+ *   ^==  P(t) = ( x(t), y(t) )  = At3 + Bt2 + Ct + D where A = (ax, ay), B = (bx, by), etc.
+ * into 4 control points as alternative parameterization (as used in the de Casteljau construction)
+ * 
+ * Now, given the four control points K0 = (x0, y0), K1 = (x1, y1), K2 = (x2, y2), and K3 = (x3, y3), here is the formula for computing the coefficients of the parametric equation P(t):
+ *
+ *   A = -K0 + 3K1 + -3K2 + K3
+ *   B = 3K0 + -6K1 + 3K2
+ *   C = -3K0 + 3K1
+ *   D = K0
+ *
+ *   http://www.drdobbs.com/forward-difference-calculation-of-bezier/184403417
+ * 
+ *  This function just inverts above equation to get from A,B,C,D to K0,K1,K2,K3
+ * 
+ *  //conversion of variable names:
+ *   f(x) = a*(x-x_i)^3 + b*(x-x_i)^2 + c*(x-x_i) + y_i
+ *      ^== interpol=((m_a[idx]*h + m_b[idx])*h + m_c[idx])*h + m_y[idx];  //with horner scheme
+ *   std::vector<double> m_x,m_y;            // x,y coordinates of points
+ *   std::vector<double> m_a,m_b,m_c;        // spline coefficients
+ */
+double spline::control_polygon(int i, int kIdx){
+    double y = m_y[i];//==d
+    double c = m_c[i];
+    double b = m_b[i];
+    double a = m_a[i];
+
+    switch(kIdx)
+    {
+        case 0 : return y;                       //K0 = y == d           
+        case 1 : return y +   c/3.0;             //K1 = K0 + c/3
+        case 2 : return y + 2*c/3.0 + b/3.0;     //K2 = b/3 - k0 + 2k1 = b/3 + k0 + 2c/3
+        case 3 : return y +   c     + b      + a;//K3 = a + k0 - 3k1 + 3k2 = a + k0 - 3k0 - c + b + 3k0 + 2c = a + k0 + c + b 
+    };
+}
 
 
 } // namespace tk
