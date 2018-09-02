@@ -479,7 +479,7 @@ double spline::deriv(int order, double x) const
  *   std::vector<double> m_x,m_y;            // x,y coordinates of points
  *   std::vector<double> m_a,m_b,m_c;        // spline coefficients
  */
-double spline::control_polygon(int i, int kIdx){
+double spline::control_polygon(int i, int kIdx) const{
     double y = m_y[i];//==d
     double c = m_c[i];
     double b = m_b[i];
